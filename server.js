@@ -5,6 +5,8 @@ const path = require('path');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const { body, validationResult } = require('express-validator');
+const session = require('express-session');
+const passport = require('passport');
 require('dotenv').config();
 
 const app = express();
@@ -16,6 +18,9 @@ const userService = require('./services/userService');
 const databaseService = require('./services/databaseService');
 const dataService = require('./services/dataService');
 const { verifyToken, requireRole, optionalAuth, createSession, clearSession } = require('./middleware/auth');
+
+// Import routes
+const githubAuthRoutes = require('./routes/githubAuth');
 
 // Security middleware
 app.use(helmet());
@@ -33,6 +38,21 @@ const limiter = rateLimit({
   message: 'Too many requests from this IP, please try again later.'
 });
 app.use('/api/', limiter);
+
+// Session middleware
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'your-session-secret-for-oauth-change-this-in-production',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
+}));
+
+// Passport middleware
+app.use(passport.initialize());
+app.use(passport.session());
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
@@ -380,6 +400,11 @@ app.delete('/api/strings/:id', async (req, res) => {
     });
   }
 });
+
+// ==================== GITHUB OAUTH ROUTES ====================
+
+// GitHub OAuth routes
+app.use('/api/auth', githubAuthRoutes);
 
 // ==================== AUTHENTICATION ENDPOINTS ====================
 
