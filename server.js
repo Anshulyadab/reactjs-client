@@ -2,15 +2,41 @@ const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
 const path = require('path');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const { body, validationResult } = require('express-validator');
 require('dotenv').config();
 
 const app = express();
 const { ports, environment } = require('./config/ports');
 const PORT = ports.backend;
 
-// Middleware
-app.use(cors());
-app.use(express.json());
+// Import services
+const userService = require('./services/userService');
+const databaseService = require('./services/databaseService');
+const dataService = require('./services/dataService');
+const { verifyToken, requireRole, optionalAuth, createSession, clearSession } = require('./middleware/auth');
+
+// Security middleware
+app.use(helmet());
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' ? 
+    ['https://your-app.vercel.app'] : 
+    ['http://localhost:3000'],
+  credentials: true
+}));
+
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again later.'
+});
+app.use('/api/', limiter);
+
+// Body parsing middleware
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Serve static files from React build in production
 if (process.env.NODE_ENV === 'production') {
@@ -356,6 +382,207 @@ app.delete('/api/strings/:id', async (req, res) => {
     });
   }
 });
+
+// ==================== AUTHENTICATION ENDPOINTS ====================
+
+// User registration
+app.post('/api/auth/register', [
+  body('username').isLength({ min: 3, max: 50 }).trim().escape(),
+  body('email').isEmail().normalizeEmail(),
+  body('password').isLength({ min: 6 }).trim()
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Validation failed', 
+        errors: errors.array() 
+      });
+    }
+
+    const { username, email, password, role = 'user' } = req.body;
+    const result = await userService.registerUser(username, email, password, role);
+
+    if (result.success) {
+      res.status(201).json(result);
+    } else {
+      res.status(400).json(result);
+    }
+  } catch (error) {
+    console.error('Registration error:', error);
+    res.status(500).json({ success: false, message: 'Registration failed' });
+  }
+});
+
+// User login
+app.post('/api/auth/login', [
+  body('username').trim().escape(),
+  body('password').trim()
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Validation failed', 
+        errors: errors.array() 
+      });
+    }
+
+    const { username, password } = req.body;
+    const result = await userService.loginUser(username, password);
+
+    if (result.success) {
+      createSession(res, result.user.id, result.user.username, result.user.role);
+      res.json(result);
+    } else {
+      res.status(401).json(result);
+    }
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ success: false, message: 'Login failed' });
+  }
+});
+
+// User logout
+app.post('/api/auth/logout', (req, res) => {
+  clearSession(res);
+  res.json({ success: true, message: 'Logged out successfully' });
+});
+
+// Get user profile
+app.get('/api/auth/profile', verifyToken, async (req, res) => {
+  try {
+    const result = await userService.getUserProfile(req.user.id);
+    res.json(result);
+  } catch (error) {
+    console.error('Get profile error:', error);
+    res.status(500).json({ success: false, message: 'Failed to get profile' });
+  }
+});
+
+// ==================== DATABASE DIAGNOSTICS ENDPOINTS ====================
+
+// Run database diagnostics
+app.get('/api/diagnostics', verifyToken, async (req, res) => {
+  try {
+    const result = await databaseService.runDiagnostics();
+    res.json(result);
+  } catch (error) {
+    console.error('Diagnostics error:', error);
+    res.status(500).json({ success: false, message: 'Diagnostics failed' });
+  }
+});
+
+// Auto-fix database issues
+app.post('/api/diagnostics/auto-fix', verifyToken, requireRole('admin'), async (req, res) => {
+  try {
+    const result = await databaseService.autoFixSchema();
+    res.json(result);
+  } catch (error) {
+    console.error('Auto-fix error:', error);
+    res.status(500).json({ success: false, message: 'Auto-fix failed' });
+  }
+});
+
+// ==================== DATA MANAGEMENT ENDPOINTS ====================
+
+// Insert data
+app.post('/api/data/:tableName', verifyToken, [
+  body('data').isObject()
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Validation failed', 
+        errors: errors.array() 
+      });
+    }
+
+    const { tableName } = req.params;
+    const { data, metadata } = req.body;
+    const result = await dataService.insertData(tableName, data, req.user.id, metadata);
+    res.json(result);
+  } catch (error) {
+    console.error('Insert data error:', error);
+    res.status(500).json({ success: false, message: 'Failed to insert data' });
+  }
+});
+
+// Get data
+app.get('/api/data/:tableName', verifyToken, async (req, res) => {
+  try {
+    const { tableName } = req.params;
+    const { limit = 100, offset = 0, orderBy = 'created_at', orderDirection = 'DESC' } = req.query;
+    
+    const result = await dataService.getData(tableName, req.user.id, {
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+      orderBy,
+      orderDirection
+    });
+    
+    res.json(result);
+  } catch (error) {
+    console.error('Get data error:', error);
+    res.status(500).json({ success: false, message: 'Failed to get data' });
+  }
+});
+
+// Export data
+app.get('/api/data/:tableName/export', verifyToken, async (req, res) => {
+  try {
+    const { tableName } = req.params;
+    const { format = 'json', limit = 1000, includeMetadata = false } = req.query;
+    
+    const result = await dataService.exportData(tableName, format, req.user.id, {
+      limit: parseInt(limit),
+      includeMetadata: includeMetadata === 'true'
+    });
+
+    if (result.success) {
+      res.setHeader('Content-Type', result.contentType);
+      res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
+      res.send(result.data);
+    } else {
+      res.status(400).json(result);
+    }
+  } catch (error) {
+    console.error('Export data error:', error);
+    res.status(500).json({ success: false, message: 'Failed to export data' });
+  }
+});
+
+// ==================== ADMIN ENDPOINTS ====================
+
+// Get all users (admin only)
+app.get('/api/admin/users', verifyToken, requireRole('admin'), async (req, res) => {
+  try {
+    const result = await userService.getAllUsers();
+    res.json(result);
+  } catch (error) {
+    console.error('Get users error:', error);
+    res.status(500).json({ success: false, message: 'Failed to get users' });
+  }
+});
+
+// Initialize database on startup
+const initializeApp = async () => {
+  try {
+    console.log('🔧 Initializing application...');
+    await userService.initializeUsersTable();
+    await databaseService.initializeDatabase();
+    console.log('✅ Application initialized successfully');
+  } catch (error) {
+    console.error('❌ Application initialization failed:', error);
+  }
+};
+
+// Initialize the application
+initializeApp();
 
 // Catch-all handler: send back React's index.html file for client-side routing
 if (process.env.NODE_ENV === 'production') {
