@@ -1,11 +1,6 @@
-const { Pool } = require('pg');
 const bcrypt = require('bcryptjs');
+const { prisma, query } = require('../lib/prisma');
 require('dotenv').config();
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || process.env.NEON_DATABASE_URL || 'postgres://dbuser:pass@db.anshulyadav.live:5432/mydb?sslmode=require',
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-});
 
 /**
  * Find or create a user from GitHub OAuth data
@@ -13,82 +8,9 @@ const pool = new Pool({
  * @returns {Object} User data
  */
 const findOrCreateGitHubUser = async (profile) => {
-  try {
-    // Check if user already exists by GitHub ID
-    const existingUser = await pool.query(
-      'SELECT * FROM users WHERE github_id = $1',
-      [profile.id]
-    );
-
-    if (existingUser.rows.length > 0) {
-      // Update last login time
-      await pool.query(
-        'UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE github_id = $1',
-        [profile.id]
-      );
-      return {
-        success: true,
-        user: {
-          id: existingUser.rows[0].id,
-          username: existingUser.rows[0].username,
-          email: existingUser.rows[0].email,
-          role: existingUser.rows[0].role,
-          github_id: existingUser.rows[0].github_id,
-          avatar_url: existingUser.rows[0].avatar_url
-        }
-      };
-    }
-
-    // Check if user exists by email
-    const existingEmailUser = await pool.query(
-      'SELECT * FROM users WHERE email = $1',
-      [profile.emails[0].value]
-    );
-
-    if (existingEmailUser.rows.length > 0) {
-      // Link GitHub account to existing user
-      await pool.query(
-        'UPDATE users SET github_id = $1, avatar_url = $2, last_login = CURRENT_TIMESTAMP WHERE email = $3',
-        [profile.id, profile.photos[0].value, profile.emails[0].value]
-      );
-      return {
-        success: true,
-        user: {
-          id: existingEmailUser.rows[0].id,
-          username: existingEmailUser.rows[0].username,
-          email: existingEmailUser.rows[0].email,
-          role: existingEmailUser.rows[0].role,
-          github_id: profile.id,
-          avatar_url: profile.photos[0].value
-        }
-      };
-    }
-
-    // Create new user
-    const username = profile.username || profile.displayName || `github_${profile.id}`;
-    const email = profile.emails[0].value;
-    const avatarUrl = profile.photos[0].value;
-    const role = 'user'; // Default role for GitHub users
-
-    const result = await pool.query(
-      `INSERT INTO users (username, email, password_hash, role, github_id, avatar_url, created_at, last_login) 
-       VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) 
-       RETURNING id, username, email, role, github_id, avatar_url`,
-      [username, email, null, role, profile.id, avatarUrl]
-    );
-
-    return {
-      success: true,
-      user: result.rows[0]
-    };
-  } catch (err) {
-    console.error('Error in findOrCreateGitHubUser:', err);
-    return {
-      success: false,
-      message: 'Failed to authenticate with GitHub',
-      error: err.message
-    };
-  }
+  // Use the Prisma user service
+  const { findOrCreateGitHubUser: prismaFindOrCreate } = require('./prismaUserService');
+  return await prismaFindOrCreate(profile);
 };
 
 /**

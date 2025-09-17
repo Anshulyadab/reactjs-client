@@ -61,22 +61,15 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Serve static files from React build (both development and production)
 app.use(express.static(path.join(__dirname, 'client/build')));
 
-// PostgreSQL connection pool - supports both Neon and custom connection strings
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || process.env.NEON_DATABASE_URL || 'postgres://dbuser:pass@db.anshulyadav.live:5432/mydb?sslmode=require',
-  // Add connection options for better compatibility with Neon
-  connectionTimeoutMillis: 10000,
-  idleTimeoutMillis: 30000,
-  max: 10,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-});
+// Enhanced Prisma database client
+const { prisma, query, testConnection, initializeDatabase } = require('./lib/prisma');
 
 // Test database connection
-pool.on('connect', () => {
+prisma.$on('connect', () => {
   console.log('Connected to PostgreSQL database');
 });
 
-pool.on('error', (err) => {
+prisma.$on('error', (err) => {
   console.error('Database connection error:', err.message);
   // Don't exit the process, just log the error
 });
@@ -84,11 +77,15 @@ pool.on('error', (err) => {
 // Function to test database connection
 async function testDatabaseConnection() {
   try {
-    const client = await pool.connect();
-    await client.query('SELECT NOW()');
-    client.release();
-    console.log('Database connection successful to db.anshulyadav.live');
-    return true;
+    const result = await testConnection();
+    if (result.success) {
+      console.log('Database connection successful to', process.env.DATABASE_URL?.split('@')[1]?.split('/')[0] || 'localhost');
+      return true;
+    } else {
+      console.log('Database connection failed:', result.error);
+      console.log('App will run with in-memory storage fallback.');
+      return false;
+    }
   } catch (err) {
     console.log('Database connection failed:', err.message);
     console.log('App will run with in-memory storage fallback.');
@@ -317,25 +314,20 @@ app.get('/api/schema', async (req, res) => {
 // Get database connection info
 app.get('/api/connection-info', async (req, res) => {
   try {
-    const versionQuery = 'SELECT version() as version';
-    const currentTimeQuery = 'SELECT NOW() as current_time';
-    const currentUserQuery = 'SELECT current_user as current_user';
-    const currentDatabaseQuery = 'SELECT current_database() as current_database';
-    
     const [versionResult, timeResult, userResult, dbResult] = await Promise.all([
-      pool.query(versionQuery),
-      pool.query(currentTimeQuery),
-      pool.query(currentUserQuery),
-      pool.query(currentDatabaseQuery)
+      prisma.$queryRaw`SELECT version() as version`,
+      prisma.$queryRaw`SELECT NOW() as current_time`,
+      prisma.$queryRaw`SELECT current_user as current_user`,
+      prisma.$queryRaw`SELECT current_database() as current_database`
     ]);
     
     res.json({ 
       success: true, 
       data: {
-        version: versionResult.rows[0].version,
-        currentTime: timeResult.rows[0].current_time,
-        currentUser: userResult.rows[0].current_user,
-        currentDatabase: dbResult.rows[0].current_database,
+        version: versionResult[0].version,
+        currentTime: timeResult[0].current_time,
+        currentUser: userResult[0].current_user,
+        currentDatabase: dbResult[0].current_database,
         connectionString: process.env.DATABASE_URL ? 'Using DATABASE_URL' : 
                          process.env.NEON_DATABASE_URL ? 'Using NEON_DATABASE_URL' : 
                          'Using custom connection string'
@@ -596,8 +588,7 @@ app.get('/api/admin/users', verifyToken, requireRole('admin'), async (req, res) 
 const initializeApp = async () => {
   try {
     console.log('🔧 Initializing application...');
-    await userService.initializeUsersTable();
-    await databaseService.initializeDatabase();
+    await initializeDatabase();
     console.log('✅ Application initialized successfully');
   } catch (error) {
     console.error('❌ Application initialization failed:', error);
