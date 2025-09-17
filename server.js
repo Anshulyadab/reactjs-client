@@ -5,7 +5,8 @@ const path = require('path');
 require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const { ports, environment } = require('./config/ports');
+const PORT = ports.backend;
 
 // Middleware
 app.use(cors());
@@ -366,7 +367,10 @@ if (process.env.NODE_ENV === 'production') {
 // Start server
 if (process.env.NODE_ENV !== 'production') {
   app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+    console.log(`🚀 Server is running on port ${PORT}`);
+    console.log(`📊 Environment: ${environment}`);
+    console.log(`🌐 Backend URL: http://localhost:${PORT}`);
+    console.log(`⚛️  Frontend URL: http://localhost:${ports.frontend}`);
   });
 }
 

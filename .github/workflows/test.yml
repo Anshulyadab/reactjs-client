@@ -1,0 +1,62 @@
+name: Test and Build
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Install backend dependencies
+      run: npm ci
+      
+    - name: Install frontend dependencies
+      run: cd client && npm ci
+      
+    - name: Lint backend code
+      run: |
+        # Add ESLint if you want to lint backend code
+        echo "Backend linting would go here"
+        
+    - name: Lint frontend code
+      run: |
+        cd client
+        npm run build --if-present
+        echo "Frontend build completed successfully"
+        
+    - name: Test backend (if tests exist)
+      run: |
+        # Add tests when you create them
+        echo "Backend tests would run here"
+        
+    - name: Test frontend (if tests exist)
+      run: |
+        cd client
+        # npm test --if-present
+        echo "Frontend tests would run here"
+        
+    - name: Build for production
+      run: npm run build
+      
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-files
+        path: |
+          client/build/
+          server.js
+          package.json
+          vercel.json

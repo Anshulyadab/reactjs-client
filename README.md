@@ -103,21 +103,44 @@ The backend provides the following API endpoints:
 - `POST /api/save-string` - Save a string to the database
 - `GET /api/strings` - Retrieve all saved strings
 
-## Project Structure
+## 📁 Project Structure
 
 ```
 postgres-react-app/
-├── client/                 # React frontend
-│   ├── src/
-│   │   ├── App.js         # Main React component
-│   │   ├── App.css        # Styling
-│   │   └── index.js       # React entry point
-│   └── package.json       # Frontend dependencies
-├── server.js              # Express backend server
-├── package.json           # Backend dependencies
-├── env.example            # Environment variables template
-└── README.md             # This file
+├── 📁 client/                    # React frontend application
+│   ├── 📁 src/                  # React source code
+│   │   ├── App.js              # Main React component
+│   │   ├── App.css             # Styling
+│   │   ├── index.js            # React entry point
+│   │   └── index.css           # Global styles
+│   ├── 📁 public/              # Static assets
+│   └── package.json            # Frontend dependencies
+│
+├── 📁 .github/workflows/        # GitHub Actions CI/CD
+│   ├── deploy.yml              # Full deployment workflow
+│   ├── deploy-simple.yml       # Simple deployment workflow
+│   └── test.yml                # Testing workflow
+│
+├── 📁 docs/                     # Documentation
+│   ├── DEPLOYMENT.md           # Deployment guide
+│   ├── GITHUB_ACTIONS_SETUP.md # GitHub Actions setup
+│   └── PROJECT_STRUCTURE.md    # Project organization
+│
+├── 📁 scripts/                  # Utility scripts
+│   ├── deploy.bat              # Windows deployment
+│   ├── deploy.sh               # Linux/Mac deployment
+│   └── get-vercel-credentials.js # Vercel helper
+│
+├── 📁 config/                   # Configuration
+│   └── env.example             # Environment template
+│
+├── 📄 server.js                 # Express backend server
+├── 📄 package.json              # Backend dependencies
+├── 📄 vercel.json               # Vercel configuration
+└── 📄 README.md                 # This file
 ```
+
+For detailed project structure, see [docs/PROJECT_STRUCTURE.md](docs/PROJECT_STRUCTURE.md).
 
 ## Database Schema
 
@@ -156,9 +179,16 @@ CREATE TABLE test_strings (
 
 ### Port Conflicts
 
-- Backend runs on port 5000 by default
-- Frontend runs on port 3000 by default
-- Change ports in `.env` file if needed
+**Check port availability:**
+```bash
+npm run check-ports
+```
+
+**Common port conflicts:**
+- Backend (5000) or Frontend (3000) already in use
+- Use different ports: `set BACKEND_PORT=5001 && set FRONTEND_PORT=3001`
+
+For detailed port troubleshooting, see [docs/PORT_TROUBLESHOOTING.md](docs/PORT_TROUBLESHOOTING.md).
 
 ### Common Errors
 
@@ -184,6 +214,74 @@ All sensitive configuration should be stored in the `.env` file:
 - `DB_PASSWORD` - Database password
 - `DB_PORT` - Database port (default: 5432)
 - `PORT` - Backend server port (default: 5000)
+
+## 🚀 Deployment to Vercel + Neon
+
+This app is ready for production deployment with Vercel and Neon database.
+
+### Option 1: GitHub Actions (Recommended)
+
+**Automatic deployment** with GitHub Actions:
+
+1. **Push to GitHub** and set up secrets
+2. **Automatic deployment** on every push
+3. **Preview deployments** for pull requests
+
+See [docs/GITHUB_ACTIONS_SETUP.md](docs/GITHUB_ACTIONS_SETUP.md) for detailed setup.
+
+### Option 2: Manual Deploy
+
+1. **Set up Neon Database**
+   - Create account at [neon.tech](https://neon.tech)
+   - Create a new project
+   - Copy your connection string
+
+2. **Deploy to Vercel**
+   ```bash
+   # Install Vercel CLI
+   npm install -g vercel
+   
+   # Login and deploy
+   vercel login
+   vercel
+   
+   # Add environment variable
+   vercel env add NEON_DATABASE_URL
+   # Paste your Neon connection string
+   
+   # Deploy to production
+   vercel --prod
+   ```
+
+3. **Or use the deployment script**
+   ```bash
+   # Windows
+   scripts/deploy.bat
+   
+   # Linux/Mac
+   ./scripts/deploy.sh
+   ```
+
+### Environment Variables for Production
+
+- `NEON_DATABASE_URL`: Your Neon database connection string
+- `NODE_ENV`: Set to `production` (automatic on Vercel)
+
+For detailed deployment instructions, see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+
+## 🌐 Live Demo
+
+Once deployed, your app will be available at:
+`https://your-app-name.vercel.app`
+
+Features available in production:
+- ✅ Full PostgreSQL database integration
+- ✅ Real-time database testing interface
+- ✅ SQL query execution
+- ✅ Database schema inspection
+- ✅ Connection diagnostics
+- ✅ Responsive design
+- ✅ HTTPS/SSL security
 
 ## License
 
