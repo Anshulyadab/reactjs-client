@@ -22,7 +22,7 @@ app.use(helmet());
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' ? 
     ['https://your-app.vercel.app'] : 
-    ['http://localhost:3000'],
+    ['http://localhost:8080'],
   credentials: true
 }));
 
@@ -38,10 +38,8 @@ app.use('/api/', limiter);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Serve static files from React build in production
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, 'client/build')));
-}
+// Serve static files from React build (both development and production)
+app.use(express.static(path.join(__dirname, 'client/build')));
 
 // PostgreSQL connection pool - supports both Neon and custom connection strings
 const pool = new Pool({
@@ -585,19 +583,19 @@ const initializeApp = async () => {
 initializeApp();
 
 // Catch-all handler: send back React's index.html file for client-side routing
-if (process.env.NODE_ENV === 'production') {
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'client/build', 'index.html'));
-  });
-}
+// This ensures React Router works properly for all non-API routes
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'client/build', 'index.html'));
+});
 
 // Start server
 if (process.env.NODE_ENV !== 'production') {
   app.listen(PORT, () => {
     console.log(`🚀 Server is running on port ${PORT}`);
     console.log(`📊 Environment: ${environment}`);
-    console.log(`🌐 Backend URL: http://localhost:${PORT}`);
-    console.log(`⚛️  Frontend URL: http://localhost:${ports.frontend}`);
+    console.log(`🌐 Application URL: http://localhost:${PORT}`);
+    console.log(`🔌 API URL: http://localhost:${PORT}/api`);
+    console.log(`⚛️  Frontend URL: http://localhost:${PORT}`);
   });
 }
 

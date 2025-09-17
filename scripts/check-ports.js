@@ -32,8 +32,7 @@ async function checkAllPorts() {
   console.log('');
 
   const portChecks = [
-    checkPort(ports.backend, 'Backend'),
-    checkPort(ports.frontend, 'Frontend')
+    checkPort(ports.backend, 'Application')
   ];
 
   const results = await Promise.all(portChecks);
@@ -55,21 +54,20 @@ async function checkAllPorts() {
   console.log('');
 
   if (allAvailable) {
-    console.log('🎉 All ports are available! You can start the application.');
+    console.log('🎉 Port is available! You can start the application.');
     console.log('');
     console.log('To start the application:');
     console.log('  npm run dev');
     console.log('');
     console.log('URLs:');
-    console.log(`  Backend:  http://localhost:${ports.backend}`);
-    console.log(`  Frontend: http://localhost:${ports.frontend}`);
+    console.log(`  Application: http://localhost:${ports.backend}`);
+    console.log(`  API:         http://localhost:${ports.backend}/api`);
   } else {
-    console.log('⚠️  Some ports are in use. Please:');
-    console.log('1. Stop other applications using these ports');
+    console.log('⚠️  Port is in use. Please:');
+    console.log('1. Stop other applications using this port');
     console.log('2. Or change the port configuration in config/ports.js');
-    console.log('3. Or set environment variables:');
-    console.log(`   BACKEND_PORT=<different_port>`);
-    console.log(`   FRONTEND_PORT=<different_port>`);
+    console.log('3. Or set environment variable:');
+    console.log(`   PORT=<different_port>`);
   }
 
   return allAvailable;

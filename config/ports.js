@@ -6,16 +6,16 @@
 
 const config = {
   development: {
-    backend: process.env.BACKEND_PORT || 5000,
-    frontend: process.env.FRONTEND_PORT || 3000,
+    backend: process.env.PORT || 8080,
+    frontend: process.env.PORT || 8080, // Same port for both frontend and backend
   },
   production: {
-    backend: process.env.PORT || 5000,
-    frontend: process.env.PORT || 5000, // Same port in production (served by Express)
+    backend: process.env.PORT || 8080,
+    frontend: process.env.PORT || 8080, // Same port in production (served by Express)
   },
   test: {
-    backend: process.env.BACKEND_PORT || 5001,
-    frontend: process.env.FRONTEND_PORT || 3001,
+    backend: process.env.PORT || 8080,
+    frontend: process.env.PORT || 8080, // Same port for testing
   }
 };
 

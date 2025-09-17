@@ -98,8 +98,8 @@ This application provides a complete interface for:
    ```
 
 5. **Access the application:**
-   - Frontend: http://localhost:3000
-   - Backend API: http://localhost:5000
+   - Application: http://localhost:8080
+   - API: http://localhost:8080/api
 
 ## 🌍 Environments
 
@@ -110,8 +110,7 @@ This application provides a complete interface for:
 **Configuration:**
 ```bash
 NODE_ENV=development
-BACKEND_PORT=5000
-FRONTEND_PORT=3000
+PORT=8080
 DATABASE_URL=postgres://user:pass@localhost:5432/mydb
 ```
 
@@ -123,10 +122,10 @@ DATABASE_URL=postgres://user:pass@localhost:5432/mydb
 
 **Start Commands:**
 ```bash
-npm run dev          # Start with port checking
+npm run dev          # Start with port checking and build
 npm run dev:simple   # Start without port checking
-npm run server       # Backend only
-npm run client       # Frontend only
+npm run server       # Start server only
+npm run build        # Build React app
 ```
 
 ### 🧪 Test Environment
@@ -136,8 +135,7 @@ npm run client       # Frontend only
 **Configuration:**
 ```bash
 NODE_ENV=test
-BACKEND_PORT=5001
-FRONTEND_PORT=3001
+PORT=8080
 DATABASE_URL=postgres://test:test@localhost:5432/testdb
 ```
 
@@ -161,7 +159,7 @@ npm run test:coverage # Coverage report
 **Configuration:**
 ```bash
 NODE_ENV=production
-PORT=5000
+PORT=8080
 DATABASE_URL=postgresql://user:pass@ep-xxx.neon.tech/neondb?sslmode=require
 ```
 
@@ -192,10 +190,9 @@ npm run check-ports
 🔍 Checking port availability...
 📊 Environment: development
 
-✅ Available - Backend (Port 5000)
-✅ Available - Frontend (Port 3000)
+✅ Available - Application (Port 8080)
 
-🎉 All ports are available! You can start the application.
+🎉 Port is available! You can start the application.
 ```
 
 ### 🗄️ Database Testing
@@ -203,7 +200,7 @@ npm run check-ports
 **1. Connection Testing:**
 ```bash
 # Test database connection
-curl http://localhost:5000/api/health
+curl http://localhost:8080/api/health
 
 # Expected response:
 {"status":"ok","database":"connected"}
@@ -212,7 +209,7 @@ curl http://localhost:5000/api/health
 **2. Query Testing:**
 ```bash
 # Test SQL query execution
-curl -X POST http://localhost:5000/api/execute-query \
+curl -X POST http://localhost:8080/api/execute-query \
   -H "Content-Type: application/json" \
   -d '{"query":"SELECT version();"}'
 ```
@@ -220,7 +217,7 @@ curl -X POST http://localhost:5000/api/execute-query \
 **3. Schema Testing:**
 ```bash
 # Test schema inspection
-curl http://localhost:5000/api/schema
+curl http://localhost:8080/api/schema
 
 # Expected response:
 {"success":true,"tables":[...]}

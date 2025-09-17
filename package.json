@@ -5,8 +5,8 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "npm run check-ports && node scripts/start-dev.js",
-    "dev:simple": "concurrently \"npm run server\" \"npm run client\"",
+    "dev": "npm run check-ports && npm run build && npm run server",
+    "dev:simple": "npm run build && npm run server",
     "server": "nodemon server.js",
     "client": "cd client && npm start",
     "build": "cd client && npm run build",
