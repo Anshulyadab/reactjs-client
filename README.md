@@ -729,4 +729,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Made with ❤️ for the developer community**
 
-For support, please open an issue on GitHub or contact the maintainers.
+For support, please open an issue on GitHub or contact the maintainers.#   r e a c t j s - c l i e n t  
+ 
