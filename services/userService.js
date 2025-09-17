@@ -5,60 +5,17 @@
  */
 
 const bcrypt = require('bcryptjs');
-const { Pool } = require('pg');
+const { query, getClient } = require('../lib/neon');
 const { generateToken } = require('../middleware/auth');
-
-// Initialize database pool
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || process.env.NEON_DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-});
 
 /**
  * Initialize users table
  */
 const initializeUsersTable = async () => {
   try {
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS users (
-        id SERIAL PRIMARY KEY,
-        username VARCHAR(50) UNIQUE NOT NULL,
-        email VARCHAR(100) UNIQUE NOT NULL,
-        password_hash VARCHAR(255),
-        role VARCHAR(20) DEFAULT 'user',
-        github_id VARCHAR(50),
-        avatar_url TEXT,
-        is_active BOOLEAN DEFAULT true,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        last_login TIMESTAMP,
-        login_attempts INTEGER DEFAULT 0,
-        locked_until TIMESTAMP
-      )
-    `);
-
-    // Add GitHub-specific columns if they don't exist
-    await pool.query(`
-      ALTER TABLE users 
-      ADD COLUMN IF NOT EXISTS github_id VARCHAR(50),
-      ADD COLUMN IF NOT EXISTS avatar_url TEXT
-    `);
-
-    // Create indexes
-    await pool.query(`
-      CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
-      CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
-      CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
-      CREATE UNIQUE INDEX IF NOT EXISTS idx_users_github_id ON users(github_id) WHERE github_id IS NOT NULL;
-    `);
-
-    // Create default admin user if no users exist
-    const userCount = await pool.query('SELECT COUNT(*) FROM users');
-    if (parseInt(userCount.rows[0].count) === 0) {
-      await createDefaultAdmin();
-    }
-
-    console.log('✅ Users table initialized successfully');
+    // Use the enhanced Neon client for initialization
+    const { initializeDatabase } = require('../lib/neon');
+    return await initializeDatabase();
   } catch (error) {
     console.error('❌ Error initializing users table:', error);
     throw error;

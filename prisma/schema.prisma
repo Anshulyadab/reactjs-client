@@ -1,0 +1,99 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            Int       @id @default(autoincrement())
+  username      String    @unique
+  email         String    @unique
+  passwordHash  String?   @map("password_hash")
+  role          String    @default("user")
+  
+  // GitHub OAuth fields
+  githubId      String?   @unique @map("github_id")
+  githubUsername String?  @map("github_username")
+  avatarUrl     String?   @map("avatar_url")
+  
+  // User status
+  isActive      Boolean   @default(true) @map("is_active")
+  lastLogin     DateTime? @map("last_login")
+  loginAttempts Int       @default(0) @map("login_attempts")
+  lockedUntil   DateTime? @map("locked_until")
+  
+  // Timestamps
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  
+  // Relations
+  strings       StringEntry[]
+  userData      UserData[]
+  sessions      Session[]
+  auditLogs     AuditLog[]
+  
+  @@map("users")
+}
+
+model StringEntry {
+  id          Int      @id @default(autoincrement())
+  userId      Int?     @map("user_id")
+  inputString String   @map("input_string")
+  createdAt   DateTime @default(now()) @map("created_at")
+  
+  // Relations
+  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("strings")
+}
+
+model UserData {
+  id           Int      @id @default(autoincrement())
+  userId       Int      @map("user_id")
+  tableName    String   @map("table_name")
+  encryptedData String? @map("encrypted_data")
+  rawData      Json?    @map("raw_data")
+  metadata     Json?
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  
+  // Relations
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("user_data")
+}
+
+model Session {
+  id        String   @id
+  userId    Int      @map("user_id")
+  expiresAt DateTime @map("expires_at")
+  token     String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  
+  // Relations
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("sessions")
+}
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int?     @map("user_id")
+  action    String
+  resource  String
+  details   Json?
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  createdAt DateTime @default(now()) @map("created_at")
+  
+  // Relations
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  @@map("audit_logs")
+}

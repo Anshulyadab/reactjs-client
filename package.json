@@ -22,6 +22,16 @@
     "test:auth": "jest tests/auth.test.js",
     "test:database": "jest tests/database.test.js",
     "test:data": "jest tests/data.test.js",
+    "prisma:generate": "prisma generate",
+    "prisma:push": "prisma db push",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:studio": "prisma studio",
+    "prisma:seed": "prisma db seed",
+    "prisma:setup": "node scripts/setup-prisma.js",
+    "docker:build": "docker build -t postgres-react-app .",
+    "docker:run": "docker run -p 8080:8080 --env-file .env postgres-react-app",
+    "docker:compose": "docker-compose up -d",
+    "docker:down": "docker-compose down",
     "deploy": "scripts/deploy.bat",
     "deploy:unix": "scripts/deploy.sh"
   },
@@ -41,6 +51,7 @@
     "passport": "^0.7.0",
     "passport-github2": "^0.1.12",
     "pg": "^8.11.3",
+    "prisma": "^6.16.2",
     "vercel": "^48.0.2"
   },
   "devDependencies": {
