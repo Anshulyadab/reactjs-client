@@ -11,6 +11,8 @@ Welcome to the PostgreSQL React App documentation. This directory contains all t
 | [DEPLOYMENT.md](DEPLOYMENT.md) | Complete deployment guide for Vercel + Neon |
 | [GITHUB_ACTIONS_SETUP.md](GITHUB_ACTIONS_SETUP.md) | GitHub Actions CI/CD setup guide |
 | [PORT_TROUBLESHOOTING.md](PORT_TROUBLESHOOTING.md) | Port conflict resolution and configuration |
+| [TESTING_GUIDE.md](TESTING_GUIDE.md) | Comprehensive testing guide for all environments |
+| [USAGE_GUIDE.md](USAGE_GUIDE.md) | Real-world usage scenarios and examples |
 
 ### 📁 Project Information
 
